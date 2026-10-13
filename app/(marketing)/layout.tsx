@@ -1,5 +1,7 @@
 import { ReactNode } from "react";
-import Navbar from "./_components/NavBar";
+import NavBar from "./_components/NavBar";
+import { PlatformThemeProvider } from "./_context/PlatformThemeContext";
+import { ThemeProvider } from "./_context/ThemeContext";
 
 export default function MarketingLayout({
   children,
@@ -7,10 +9,13 @@ export default function MarketingLayout({
   children: ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-neutral-50 selection:bg-[hsl(320,65%,52%,20%)]">
-      <Navbar />
-
-      {children}
-    </div>
+    <ThemeProvider>
+      <PlatformThemeProvider>
+        <div className="min-h-screen transition-colors duration-700">
+          <NavBar />
+          {children}
+        </div>
+      </PlatformThemeProvider>
+    </ThemeProvider>
   );
 }
