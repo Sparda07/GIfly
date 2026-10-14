@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import { createJob } from "@/app/action/jobs";
 import { isValidUrl } from "@/lib/validators/url";
+import { detectPlatform } from "@/lib/platform/detect";
 
 import { usePlatformTheme } from "./_context/PlatformThemeContext";
 import { useTheme } from "./_context/ThemeContext";
@@ -20,30 +22,60 @@ export default function HomePage() {
   const { platform } = usePlatformTheme();
   const { darkMode } = useTheme();
 
-  // ================= URL VALIDATION STATE =================
+  // URL STATE
   const [url, setUrl] = useState("");
   const [error, setError] = useState("");
+  const [detectedPlatform, setDetectedPlatform] = useState("");
 
-  // ================= HANDLE URL SUBMIT =================
-  const handleSubmit = () => {
-    // Clear previous error
+  // LOADING STATE
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // HANDLE URL SUBMIT
+  const handleSubmit = async () => {
     setError("");
+    setDetectedPlatform("");
 
-    // Check if input is empty
+    // Check empty input
     if (!url.trim()) {
       setError("Please enter a video URL.");
       return;
     }
 
-    // Check if URL is valid
+    // Check valid URL
     if (!isValidUrl(url)) {
       setError("Please enter a valid URL.");
       return;
     }
 
-    // For now, just test the valid URL.
-    // Later this will call our API.
-    console.log("Valid URL:", url);
+    // Detect platform
+    const detected = detectPlatform(url);
+
+    // Check supported platform
+    if (detected === "other") {
+      setError("This platform is not supported yet.");
+      return;
+    }
+
+    setDetectedPlatform(detected);
+    setIsSubmitting(true);
+
+    try {
+      // Create database job
+      const result = await createJob(url, detected);
+
+      console.log("Job created successfully:", result.job);
+    } catch (error) {
+      console.error("Failed to create job:", error);
+
+      setDetectedPlatform("");
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong. Please try again."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -102,7 +134,7 @@ export default function HomePage() {
               a downloadable file with GIFLY.
             </p>
 
-            {/* URL Input */}
+            {/* URL INPUT */}
             <div className="mx-auto mt-10 max-w-2xl">
               <div
                 className={`flex flex-col gap-3 rounded-2xl border p-2 backdrop-blur-xl transition-all duration-700 sm:flex-row ${
@@ -114,12 +146,16 @@ export default function HomePage() {
                 <input
                   type="url"
                   value={url}
+                  disabled={isSubmitting}
                   onChange={(e) => {
                     setUrl(e.target.value);
 
-                    // Clear error while user is typing
                     if (error) {
                       setError("");
+                    }
+
+                    if (detectedPlatform) {
+                      setDetectedPlatform("");
                     }
                   }}
                   onKeyDown={(e) => {
@@ -138,16 +174,24 @@ export default function HomePage() {
                 <button
                   type="button"
                   onClick={handleSubmit}
-                  className="h-12 rounded-xl bg-neutral-950 px-7 text-sm font-semibold text-white transition-all duration-200 hover:bg-neutral-800 hover:shadow-lg dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200"
+                  disabled={isSubmitting}
+                  className="h-12 rounded-xl bg-neutral-950 px-7 text-sm font-semibold text-white transition-all duration-200 hover:bg-neutral-800 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200"
                 >
-                  Get Started
+                  {isSubmitting ? "Processing..." : "Get Started"}
                 </button>
               </div>
 
-              {/* Validation Error */}
+              {/* ERROR MESSAGE */}
               {error && (
                 <p className="mt-2 px-2 text-left text-sm text-red-500">
                   {error}
+                </p>
+              )}
+
+              {/* SUCCESS MESSAGE */}
+              {detectedPlatform && !error && (
+                <p className="mt-2 px-2 text-left text-sm text-green-600">
+                  Platform detected: {detectedPlatform}
                 </p>
               )}
             </div>
@@ -223,14 +267,18 @@ export default function HomePage() {
       {/* PLATFORM INFO */}
       <section
         className={`border-t transition-colors duration-700 ${
-          darkMode ? "border-white/[0.06]" : "border-purple-200/40"
+          darkMode
+            ? "border-white/[0.06]"
+            : "border-purple-200/40"
         }`}
       >
         <div className="mx-auto max-w-[1400px] px-5 py-20 sm:px-8">
           <div className="mx-auto max-w-3xl text-center">
             <p
               className={`text-xs font-semibold uppercase tracking-[0.18em] ${
-                darkMode ? "text-neutral-500" : "text-neutral-400"
+                darkMode
+                  ? "text-neutral-500"
+                  : "text-neutral-400"
               }`}
             >
               One simple workflow
@@ -238,7 +286,9 @@ export default function HomePage() {
 
             <h2
               className={`mt-4 text-3xl font-bold tracking-[-0.04em] transition-colors duration-700 sm:text-4xl ${
-                darkMode ? "text-white" : "text-neutral-950"
+                darkMode
+                  ? "text-white"
+                  : "text-neutral-950"
               }`}
             >
               One link. One click. Your file.
@@ -246,7 +296,9 @@ export default function HomePage() {
 
             <p
               className={`mt-5 text-base leading-7 transition-colors duration-700 ${
-                darkMode ? "text-neutral-400" : "text-neutral-500"
+                darkMode
+                  ? "text-neutral-400"
+                  : "text-neutral-500"
               }`}
             >
               GIFLY keeps the process simple. Choose your platform, paste your
@@ -281,10 +333,6 @@ export default function HomePage() {
     </main>
   );
 }
-
-// ==========================================================
-// PLATFORM BADGE
-// ==========================================================
 
 function PlatformBadge({
   name,
@@ -322,10 +370,6 @@ function PlatformBadge({
   );
 }
 
-// ==========================================================
-// STEP CARD
-// ==========================================================
-
 function StepCard({
   number,
   title,
@@ -347,7 +391,9 @@ function StepCard({
     >
       <span
         className={`text-xs font-semibold tracking-[0.15em] ${
-          darkMode ? "text-neutral-500" : "text-neutral-400"
+          darkMode
+            ? "text-neutral-500"
+            : "text-neutral-400"
         }`}
       >
         {number}
@@ -355,7 +401,9 @@ function StepCard({
 
       <h3
         className={`mt-5 text-lg font-semibold tracking-[-0.02em] ${
-          darkMode ? "text-white" : "text-neutral-950"
+          darkMode
+            ? "text-white"
+            : "text-neutral-950"
         }`}
       >
         {title}
@@ -363,7 +411,9 @@ function StepCard({
 
       <p
         className={`mt-3 text-sm leading-6 ${
-          darkMode ? "text-neutral-400" : "text-neutral-500"
+          darkMode
+            ? "text-neutral-400"
+            : "text-neutral-500"
         }`}
       >
         {description}
