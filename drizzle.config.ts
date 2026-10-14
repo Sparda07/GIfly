@@ -1,9 +1,6 @@
 import { defineConfig } from "drizzle-kit";
 import dotenv from "dotenv";
 
-// Next.js gives .env.local precedence during local development. Load it first
-// so migrations target the same database the application uses.
-dotenv.config({ path: ".env.local", override: true });
 dotenv.config({ path: ".env" });
 
 export default defineConfig({

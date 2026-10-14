@@ -308,6 +308,42 @@ export default function NavBar() {
           {/* Signed In */}
 
           <Show when="signed-in">
+            <Link
+              href="/dashboard"
+              aria-label="Open dashboard"
+              className={`flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-300 hover:-translate-y-px sm:hidden ${
+                darkMode
+                  ? "bg-white text-neutral-950 hover:bg-neutral-200"
+                  : "bg-neutral-950 text-white hover:bg-neutral-800"
+              }`}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>
+            </Link>
+
+            <Link
+              href="/dashboard"
+              className={`hidden items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-300 hover:-translate-y-px sm:inline-flex ${
+                darkMode
+                  ? "bg-white text-neutral-950 hover:bg-neutral-200 hover:shadow-md"
+                  : "bg-neutral-950 text-white hover:bg-neutral-800 hover:shadow-md"
+              }`}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="h-4 w-4"
+                aria-hidden="true"
+              >
+                <rect x="3" y="3" width="7" height="7" rx="1" />
+                <rect x="14" y="3" width="7" height="7" rx="1" />
+                <rect x="3" y="14" width="7" height="7" rx="1" />
+                <rect x="14" y="14" width="7" height="7" rx="1" />
+              </svg>
+              Dashboard
+            </Link>
+
             <UserButton
               appearance={{
                 elements: {

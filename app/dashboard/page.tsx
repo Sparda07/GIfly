@@ -1,7 +1,11 @@
-export default function DashboardPage() {
+import { getUserJobs } from "@/app/action/jobs";
+import ProcessLinkForm from "@/app/dashboard/_components/ProcessLinkForm";
+
+export default async function DashboardPage() {
+  const recentJobs = await getUserJobs();
+
   return (
     <main className="pb-16">
-
       {/* HEADER */}
       <section className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
         <div>
@@ -28,10 +32,9 @@ export default function DashboardPage() {
         </div>
       </section>
 
-
       {/* STAT CARDS */}
       <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-
+        {/* Daily usage */}
         <div className="group rounded-2xl border border-black/[0.06] bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_15px_40px_rgba(0,0,0,0.06)]">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-neutral-500">
@@ -58,7 +61,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-
+        {/* Total downloads */}
         <div className="group rounded-2xl border border-black/[0.06] bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_15px_40px_rgba(0,0,0,0.06)]">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-neutral-500">
@@ -79,7 +82,7 @@ export default function DashboardPage() {
           </p>
         </div>
 
-
+        {/* GIFs created */}
         <div className="group rounded-2xl border border-black/[0.06] bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_15px_40px_rgba(0,0,0,0.06)]">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-neutral-500">
@@ -100,7 +103,7 @@ export default function DashboardPage() {
           </p>
         </div>
 
-
+        {/* Current plan */}
         <div className="group rounded-2xl border border-black/[0.06] bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_15px_40px_rgba(0,0,0,0.06)]">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-neutral-500">
@@ -122,12 +125,9 @@ export default function DashboardPage() {
         </div>
       </section>
 
-
       {/* MAIN ACTION */}
       <section className="mt-6">
         <div className="relative overflow-hidden rounded-3xl border border-purple-100 bg-white p-7 shadow-[0_4px_30px_rgba(0,0,0,0.04)] sm:p-9">
-
-          {/* Background glow */}
           <div className="pointer-events-none absolute -right-20 -top-32 h-72 w-72 rounded-full bg-purple-400/10 blur-3xl" />
 
           <div className="relative">
@@ -152,40 +152,8 @@ export default function DashboardPage() {
               </div>
             </div>
 
-
-            {/* INPUT */}
-            <div className="mt-8 flex flex-col gap-2 rounded-2xl border border-neutral-200 bg-neutral-50 p-2 transition-all focus-within:border-purple-300 focus-within:bg-white focus-within:shadow-[0_0_0_4px_rgba(168,85,247,0.08)] sm:flex-row">
-
-              <div className="flex flex-1 items-center px-4">
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="mr-3 text-neutral-400"
-                >
-                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                </svg>
-
-                <input
-                  type="text"
-                  placeholder="Paste a YouTube, Instagram, Reddit or X link..."
-                  className="w-full bg-transparent py-3 text-sm outline-none placeholder:text-neutral-400"
-                />
-              </div>
-
-              <button
-                type="button"
-                className="rounded-xl bg-neutral-950 px-7 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-purple-700 hover:shadow-lg hover:shadow-purple-500/20"
-              >
-                Process Link
-              </button>
-            </div>
+            {/* PROCESS LINK FORM */}
+            <ProcessLinkForm />
 
             <div className="mt-4 flex flex-wrap gap-2">
               {["YouTube", "Instagram", "Reddit", "X"].map((platform) => (
@@ -201,13 +169,10 @@ export default function DashboardPage() {
         </div>
       </section>
 
-
       {/* BOTTOM */}
       <section className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
-
-        {/* ACTIVITY */}
+        {/* RECENT ACTIVITY */}
         <div className="rounded-3xl border border-black/[0.06] bg-white p-6 shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
-
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-bold tracking-[-0.03em]">
@@ -224,37 +189,35 @@ export default function DashboardPage() {
             </button>
           </div>
 
-
           <div className="mt-6 divide-y divide-neutral-100">
+            {recentJobs.length > 0 ? (
+              recentJobs.map((job) => (
+                <Activity
+                  key={job.id}
+                  icon={getPlatformIcon(job.platform)}
+                  iconClass={getPlatformIconClass(job.platform)}
+                  title={getPlatformTitle(job.platform)}
+                  url={job.sourceUrl}
+                  time={formatJobTime(job.createdAt)}
+                  status={job.status}
+                />
+              ))
+            ) : (
+              <div className="py-10 text-center">
+                <p className="text-sm font-medium text-neutral-500">
+                  No activity yet.
+                </p>
 
-            <Activity
-              icon="Y"
-              iconClass="bg-red-50 text-red-500"
-              title="YouTube video"
-              time="2 minutes ago"
-            />
-
-            <Activity
-              icon="I"
-              iconClass="bg-pink-50 text-pink-500"
-              title="Instagram Reel"
-              time="Yesterday"
-            />
-
-            <Activity
-              icon="R"
-              iconClass="bg-orange-50 text-orange-500"
-              title="Reddit video"
-              time="2 days ago"
-            />
-
+                <p className="mt-1 text-xs text-neutral-400">
+                  Process your first link to see it here.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
-
-        {/* PLAN */}
+        {/* PLAN CARD */}
         <div className="relative overflow-hidden rounded-3xl bg-neutral-950 p-7 text-white shadow-xl">
-
           <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-purple-600/30 blur-3xl" />
 
           <div className="relative">
@@ -277,9 +240,7 @@ export default function DashboardPage() {
                 Daily usage
               </span>
 
-              <span>
-                1 / 1
-              </span>
+              <span>1 / 1</span>
             </div>
 
             <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
@@ -291,30 +252,32 @@ export default function DashboardPage() {
             </button>
           </div>
         </div>
-
       </section>
-
     </main>
   );
 }
 
-
+/* -------------------------------------------------- */
 /* ACTIVITY COMPONENT */
+/* -------------------------------------------------- */
 
 function Activity({
   icon,
   iconClass,
   title,
+  url,
   time,
+  status,
 }: {
   icon: string;
   iconClass: string;
   title: string;
+  url: string;
   time: string;
+  status: string;
 }) {
   return (
     <div className="flex items-center justify-between gap-4 py-4">
-
       <div className="flex min-w-0 items-center gap-3">
         <div
           className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${iconClass}`}
@@ -323,8 +286,12 @@ function Activity({
         </div>
 
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-neutral-800">
+          <p className="text-sm font-semibold text-neutral-800">
             {title}
+          </p>
+
+          <p className="mt-1 truncate text-[11px] text-neutral-400">
+            {url}
           </p>
 
           <p className="mt-1 text-[11px] text-neutral-400">
@@ -333,9 +300,130 @@ function Activity({
         </div>
       </div>
 
-      <span className="shrink-0 rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-semibold text-emerald-600">
-        Completed
+      <span
+        className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-semibold ${getStatusClass(
+          status
+        )}`}
+      >
+        {formatStatus(status)}
       </span>
     </div>
   );
+}
+
+/* -------------------------------------------------- */
+/* PLATFORM HELPERS */
+/* -------------------------------------------------- */
+
+function getPlatformIcon(platform: string) {
+  switch (platform) {
+    case "youtube":
+      return "Y";
+
+    case "instagram":
+      return "I";
+
+    case "reddit":
+      return "R";
+
+    case "twitter":
+      return "X";
+
+    default:
+      return "?";
+  }
+}
+
+function getPlatformIconClass(platform: string) {
+  switch (platform) {
+    case "youtube":
+      return "bg-red-50 text-red-500";
+
+    case "instagram":
+      return "bg-pink-50 text-pink-500";
+
+    case "reddit":
+      return "bg-orange-50 text-orange-500";
+
+    case "twitter":
+      return "bg-neutral-100 text-neutral-700";
+
+    default:
+      return "bg-purple-50 text-purple-500";
+  }
+}
+
+function getPlatformTitle(platform: string) {
+  switch (platform) {
+    case "youtube":
+      return "YouTube video";
+
+    case "instagram":
+      return "Instagram Reel";
+
+    case "reddit":
+      return "Reddit video";
+
+    case "twitter":
+      return "X video";
+
+    default:
+      return "Video link";
+  }
+}
+
+/* -------------------------------------------------- */
+/* STATUS HELPERS */
+/* -------------------------------------------------- */
+
+function formatStatus(status: string) {
+  switch (status) {
+    case "pending":
+      return "Pending";
+
+    case "processing":
+      return "Processing";
+
+    case "completed":
+      return "Completed";
+
+    case "failed":
+      return "Failed";
+
+    default:
+      return status;
+  }
+}
+
+function getStatusClass(status: string) {
+  switch (status) {
+    case "pending":
+      return "bg-amber-50 text-amber-600";
+
+    case "processing":
+      return "bg-blue-50 text-blue-600";
+
+    case "completed":
+      return "bg-emerald-50 text-emerald-600";
+
+    case "failed":
+      return "bg-red-50 text-red-600";
+
+    default:
+      return "bg-neutral-100 text-neutral-600";
+  }
+}
+
+/* -------------------------------------------------- */
+/* DATE FORMATTER */
+/* -------------------------------------------------- */
+
+function formatJobTime(date: Date) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(date));
 }

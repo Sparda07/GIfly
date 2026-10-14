@@ -1,7 +1,7 @@
 "use server";
 
 import { auth, clerkClient } from "@clerk/nextjs/server";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 
 import { db } from "@/drizzle/db";
 import { users, jobs } from "@/drizzle/schema";
@@ -19,6 +19,9 @@ const platformMap = {
   x: "twitter",
 } as const;
 
+/**
+ * Create a new processing job.
+ */
 export async function createJob(
   sourceUrl: string,
   platform: SupportedPlatform
@@ -30,7 +33,6 @@ export async function createJob(
   }
 
   try {
-    // Get current Clerk user
     const client = await clerkClient();
     const clerkUser = await client.users.getUser(userId);
 
@@ -42,7 +44,6 @@ export async function createJob(
       throw new Error("No email address found for this account.");
     }
 
-    // Find user in database
     let existingUsers;
 
     try {
@@ -58,7 +59,7 @@ export async function createJob(
 
     let databaseUser = existingUsers[0];
 
-    // Create database user if they don't exist
+    // Create user in our database if they don't exist yet.
     if (!databaseUser) {
       const newUsers = await db
         .insert(users)
@@ -77,10 +78,8 @@ export async function createJob(
       databaseUser = newUsers[0];
     }
 
-    // Convert frontend platform to database platform
     const databasePlatform = platformMap[platform];
 
-    // Create job
     const newJobs = await db
       .insert(jobs)
       .values({
@@ -102,6 +101,158 @@ export async function createJob(
       error instanceof Error
         ? error.message
         : "Failed to create job."
+    );
+  }
+}
+
+/**
+ * Get the latest jobs belonging to the currently signed-in user.
+ */
+export async function getUserJobs() {
+  const { userId } = await auth();
+
+  if (!userId) {
+    throw new Error("You must be signed in to view your jobs.");
+  }
+
+  try {
+    const databaseUsers = await db
+      .select()
+      .from(users)
+      .where(eq(users.clerkUserId, userId))
+      .limit(1);
+
+    const databaseUser = databaseUsers[0];
+
+    if (!databaseUser) {
+      return [];
+    }
+
+    const userJobs = await db
+      .select()
+      .from(jobs)
+      .where(eq(jobs.userId, databaseUser.id))
+      .orderBy(desc(jobs.createdAt))
+      .limit(5);
+
+    return userJobs;
+  } catch (error) {
+    console.error("GET USER JOBS ERROR:", error);
+
+    throw new Error(
+      error instanceof Error
+        ? error.message
+        : "Failed to load jobs."
+    );
+  }
+}
+
+/**
+ * Process a job.
+ *
+ * TEMPORARY:
+ * This does not download or convert anything yet.
+ * It only simulates the processing lifecycle:
+ *
+ * pending → processing → completed
+ */
+export async function processJob(jobId: string) {
+  const { userId } = await auth();
+
+  if (!userId) {
+    throw new Error("You must be signed in.");
+  }
+
+  try {
+    // Find the current user's database record.
+    const databaseUsers = await db
+      .select()
+      .from(users)
+      .where(eq(users.clerkUserId, userId))
+      .limit(1);
+
+    const databaseUser = databaseUsers[0];
+
+    if (!databaseUser) {
+      throw new Error("User not found.");
+    }
+
+    // Find the requested job.
+    const existingJobs = await db
+      .select()
+      .from(jobs)
+      .where(eq(jobs.id, jobId))
+      .limit(1);
+
+    const job = existingJobs[0];
+
+    if (!job) {
+      throw new Error("Job not found.");
+    }
+
+    // Security check:
+    // A user can only process their own jobs.
+    if (job.userId !== databaseUser.id) {
+      throw new Error(
+        "You do not have permission to process this job."
+      );
+    }
+
+    // Move job to processing.
+    await db
+      .update(jobs)
+      .set({
+        status: "processing",
+      })
+      .where(eq(jobs.id, jobId));
+
+    // TEMPORARY PROCESSING SIMULATION
+    // Later this will be replaced with the actual
+    // video downloading / GIF conversion process.
+    await new Promise((resolve) =>
+      setTimeout(resolve, 3000)
+    );
+
+    // Mark job as completed.
+    const completedJobs = await db
+      .update(jobs)
+      .set({
+        status: "completed",
+        completedAt: new Date(),
+      })
+      .where(eq(jobs.id, jobId))
+      .returning();
+
+    return {
+      success: true,
+      job: completedJobs[0],
+    };
+  } catch (error) {
+    console.error("PROCESS JOB ERROR:", error);
+
+    // Try to mark the job as failed.
+    try {
+      await db
+        .update(jobs)
+        .set({
+          status: "failed",
+          errorMessage:
+            error instanceof Error
+              ? error.message
+              : "Unknown processing error.",
+        })
+        .where(eq(jobs.id, jobId));
+    } catch (updateError) {
+      console.error(
+        "FAILED TO UPDATE JOB STATUS:",
+        updateError
+      );
+    }
+
+    throw new Error(
+      error instanceof Error
+        ? error.message
+        : "Failed to process job."
     );
   }
 }
