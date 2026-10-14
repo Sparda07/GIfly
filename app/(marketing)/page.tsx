@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
+
+import { isValidUrl } from "@/lib/validators/url";
 
 import { usePlatformTheme } from "./_context/PlatformThemeContext";
 import { useTheme } from "./_context/ThemeContext";
@@ -13,17 +16,35 @@ const platformBackgrounds = {
   x: "#f5f5f7",
 };
 
-const darkPlatformBackgrounds = {
-  default: "#111014",
-  youtube: "#1b1013",
-  instagram: "#19111b",
-  reddit: "#1b1510",
-  x: "#101316",
-};
-
 export default function HomePage() {
   const { platform } = usePlatformTheme();
   const { darkMode } = useTheme();
+
+  // ================= URL VALIDATION STATE =================
+  const [url, setUrl] = useState("");
+  const [error, setError] = useState("");
+
+  // ================= HANDLE URL SUBMIT =================
+  const handleSubmit = () => {
+    // Clear previous error
+    setError("");
+
+    // Check if input is empty
+    if (!url.trim()) {
+      setError("Please enter a video URL.");
+      return;
+    }
+
+    // Check if URL is valid
+    if (!isValidUrl(url)) {
+      setError("Please enter a valid URL.");
+      return;
+    }
+
+    // For now, just test the valid URL.
+    // Later this will call our API.
+    console.log("Valid URL:", url);
+  };
 
   return (
     <main
@@ -32,18 +53,15 @@ export default function HomePage() {
       }`}
       style={{
         backgroundColor: darkMode
-          ? darkPlatformBackgrounds[platform]
+          ? "#111014"
           : platformBackgrounds[platform],
       }}
     >
       {/* HERO */}
-
       <section className="relative overflow-hidden">
         <div className="mx-auto flex min-h-[calc(100vh-72px)] max-w-[1400px] items-center px-5 py-20 sm:px-8 lg:py-28">
           <div className="mx-auto w-full max-w-5xl text-center">
-
             {/* Badge */}
-
             <div
               className={`mb-7 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium shadow-sm backdrop-blur-sm transition-colors duration-700 ${
                 darkMode
@@ -53,9 +71,7 @@ export default function HomePage() {
             >
               <span
                 className={`h-1.5 w-1.5 rounded-full ${
-                  darkMode
-                    ? "bg-purple-400"
-                    : "bg-purple-500"
+                  darkMode ? "bg-purple-400" : "bg-purple-500"
                 }`}
               />
 
@@ -63,12 +79,9 @@ export default function HomePage() {
             </div>
 
             {/* Heading */}
-
             <h1
               className={`text-5xl font-bold tracking-[-0.055em] transition-colors duration-700 sm:text-6xl lg:text-7xl ${
-                darkMode
-                  ? "text-white"
-                  : "text-neutral-950"
+                darkMode ? "text-white" : "text-neutral-950"
               }`}
             >
               Paste the Link.
@@ -80,12 +93,9 @@ export default function HomePage() {
             </h1>
 
             {/* Description */}
-
             <p
               className={`mx-auto mt-7 max-w-2xl text-base leading-7 transition-colors duration-700 sm:text-lg ${
-                darkMode
-                  ? "text-neutral-400"
-                  : "text-neutral-500"
+                darkMode ? "text-neutral-400" : "text-neutral-500"
               }`}
             >
               Paste a video link from your favorite platform and turn it into
@@ -93,40 +103,60 @@ export default function HomePage() {
             </p>
 
             {/* URL Input */}
-
-            <div
-              className={`mx-auto mt-10 flex max-w-2xl flex-col gap-3 rounded-2xl border p-2 backdrop-blur-xl transition-all duration-700 sm:flex-row ${
-                darkMode
-                  ? "border-white/10 bg-white/[0.05] shadow-[0_20px_60px_rgba(0,0,0,0.25)]"
-                  : "border-purple-200/50 bg-white/70 shadow-[0_20px_60px_rgba(120,80,180,0.10)]"
-              }`}
-            >
-              <input
-                type="url"
-                placeholder="Paste your video link here..."
-                className={`h-12 flex-1 rounded-xl bg-transparent px-4 text-sm outline-none ${
+            <div className="mx-auto mt-10 max-w-2xl">
+              <div
+                className={`flex flex-col gap-3 rounded-2xl border p-2 backdrop-blur-xl transition-all duration-700 sm:flex-row ${
                   darkMode
-                    ? "text-white placeholder:text-neutral-500"
-                    : "text-neutral-900 placeholder:text-neutral-400"
+                    ? "border-white/10 bg-white/[0.05] shadow-[0_20px_60px_rgba(0,0,0,0.25)]"
+                    : "border-purple-200/50 bg-white/70 shadow-[0_20px_60px_rgba(120,80,180,0.10)]"
                 }`}
-              />
-
-              <button
-                type="button"
-                className="h-12 rounded-xl bg-neutral-950 px-7 text-sm font-semibold text-white transition-all duration-200 hover:bg-neutral-800 hover:shadow-lg dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200"
               >
-                Get Started
-              </button>
+                <input
+                  type="url"
+                  value={url}
+                  onChange={(e) => {
+                    setUrl(e.target.value);
+
+                    // Clear error while user is typing
+                    if (error) {
+                      setError("");
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleSubmit();
+                    }
+                  }}
+                  placeholder="Paste your video link here..."
+                  className={`h-12 flex-1 rounded-xl bg-transparent px-4 text-sm outline-none ${
+                    darkMode
+                      ? "text-white placeholder:text-neutral-500"
+                      : "text-neutral-900 placeholder:text-neutral-400"
+                  }`}
+                />
+
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  className="h-12 rounded-xl bg-neutral-950 px-7 text-sm font-semibold text-white transition-all duration-200 hover:bg-neutral-800 hover:shadow-lg dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200"
+                >
+                  Get Started
+                </button>
+              </div>
+
+              {/* Validation Error */}
+              {error && (
+                <p className="mt-2 px-2 text-left text-sm text-red-500">
+                  {error}
+                </p>
+              )}
             </div>
 
             {/* Supported Platforms */}
-
             <div className="mt-8">
               <p
                 className={`text-xs font-medium uppercase tracking-[0.16em] transition-colors duration-700 ${
-                  darkMode
-                    ? "text-neutral-500"
-                    : "text-neutral-400"
+                  darkMode ? "text-neutral-500" : "text-neutral-400"
                 }`}
               >
                 Supported Platforms
@@ -160,7 +190,6 @@ export default function HomePage() {
             </div>
 
             {/* Read Docs */}
-
             <div className="mt-10">
               <Link
                 href="/docs"
@@ -192,22 +221,16 @@ export default function HomePage() {
       </section>
 
       {/* PLATFORM INFO */}
-
       <section
         className={`border-t transition-colors duration-700 ${
-          darkMode
-            ? "border-white/[0.06]"
-            : "border-purple-200/40"
+          darkMode ? "border-white/[0.06]" : "border-purple-200/40"
         }`}
       >
         <div className="mx-auto max-w-[1400px] px-5 py-20 sm:px-8">
           <div className="mx-auto max-w-3xl text-center">
-
             <p
               className={`text-xs font-semibold uppercase tracking-[0.18em] ${
-                darkMode
-                  ? "text-neutral-500"
-                  : "text-neutral-400"
+                darkMode ? "text-neutral-500" : "text-neutral-400"
               }`}
             >
               One simple workflow
@@ -215,9 +238,7 @@ export default function HomePage() {
 
             <h2
               className={`mt-4 text-3xl font-bold tracking-[-0.04em] transition-colors duration-700 sm:text-4xl ${
-                darkMode
-                  ? "text-white"
-                  : "text-neutral-950"
+                darkMode ? "text-white" : "text-neutral-950"
               }`}
             >
               One link. One click. Your file.
@@ -225,9 +246,7 @@ export default function HomePage() {
 
             <p
               className={`mt-5 text-base leading-7 transition-colors duration-700 ${
-                darkMode
-                  ? "text-neutral-400"
-                  : "text-neutral-500"
+                darkMode ? "text-neutral-400" : "text-neutral-500"
               }`}
             >
               GIFLY keeps the process simple. Choose your platform, paste your
@@ -262,6 +281,10 @@ export default function HomePage() {
     </main>
   );
 }
+
+// ==========================================================
+// PLATFORM BADGE
+// ==========================================================
 
 function PlatformBadge({
   name,
@@ -299,6 +322,10 @@ function PlatformBadge({
   );
 }
 
+// ==========================================================
+// STEP CARD
+// ==========================================================
+
 function StepCard({
   number,
   title,
@@ -320,9 +347,7 @@ function StepCard({
     >
       <span
         className={`text-xs font-semibold tracking-[0.15em] ${
-          darkMode
-            ? "text-neutral-500"
-            : "text-neutral-400"
+          darkMode ? "text-neutral-500" : "text-neutral-400"
         }`}
       >
         {number}
@@ -330,9 +355,7 @@ function StepCard({
 
       <h3
         className={`mt-5 text-lg font-semibold tracking-[-0.02em] ${
-          darkMode
-            ? "text-white"
-            : "text-neutral-950"
+          darkMode ? "text-white" : "text-neutral-950"
         }`}
       >
         {title}
@@ -340,9 +363,7 @@ function StepCard({
 
       <p
         className={`mt-3 text-sm leading-6 ${
-          darkMode
-            ? "text-neutral-400"
-            : "text-neutral-500"
+          darkMode ? "text-neutral-400" : "text-neutral-500"
         }`}
       >
         {description}
