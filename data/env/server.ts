@@ -7,6 +7,7 @@ export const env = createEnv({
   server: {
     DATABASE_URL: z.string().url(),
     CLERK_SECRET_KEY: z.string(),
+    SHOTSTACK_API_KEY: z.string(),
   },
 
   experimental__runtimeEnv: process.env,

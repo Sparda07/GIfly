@@ -3,8 +3,9 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { desc, eq } from "drizzle-orm";
 
+import { createShotstackGif } from "@/app/action/shotstack";
 import { db } from "@/drizzle/db";
-import { users, jobs } from "@/drizzle/schema";
+import { jobs, users } from "@/drizzle/schema";
 
 type SupportedPlatform =
   | "youtube"
@@ -19,9 +20,6 @@ const platformMap = {
   x: "twitter",
 } as const;
 
-/**
- * Create a new processing job.
- */
 export async function createJob(
   sourceUrl: string,
   platform: SupportedPlatform
@@ -37,11 +35,14 @@ export async function createJob(
     const clerkUser = await client.users.getUser(userId);
 
     const email = clerkUser.emailAddresses.find(
-      (email) => email.id === clerkUser.primaryEmailAddressId
+      (email) =>
+        email.id === clerkUser.primaryEmailAddressId
     )?.emailAddress;
 
     if (!email) {
-      throw new Error("No email address found for this account.");
+      throw new Error(
+        "No email address found for this account."
+      );
     }
 
     let existingUsers;
@@ -53,13 +54,16 @@ export async function createJob(
         .where(eq(users.clerkUserId, userId))
         .limit(1);
     } catch (error) {
-      console.error("DATABASE QUERY ERROR:", error);
+      console.error(
+        "DATABASE QUERY ERROR:",
+        error
+      );
+
       throw error;
     }
 
     let databaseUser = existingUsers[0];
 
-    // Create user in our database if they don't exist yet.
     if (!databaseUser) {
       const newUsers = await db
         .insert(users)
@@ -67,7 +71,8 @@ export async function createJob(
           clerkUserId: userId,
           email,
           name:
-            clerkUser.firstName || clerkUser.lastName
+            clerkUser.firstName ||
+            clerkUser.lastName
               ? `${clerkUser.firstName ?? ""} ${
                   clerkUser.lastName ?? ""
                 }`.trim()
@@ -78,7 +83,8 @@ export async function createJob(
       databaseUser = newUsers[0];
     }
 
-    const databasePlatform = platformMap[platform];
+    const databasePlatform =
+      platformMap[platform];
 
     const newJobs = await db
       .insert(jobs)
@@ -95,7 +101,10 @@ export async function createJob(
       job: newJobs[0],
     };
   } catch (error) {
-    console.error("CREATE JOB ERROR:", error);
+    console.error(
+      "CREATE JOB ERROR:",
+      error
+    );
 
     throw new Error(
       error instanceof Error
@@ -105,14 +114,13 @@ export async function createJob(
   }
 }
 
-/**
- * Get the latest jobs belonging to the currently signed-in user.
- */
 export async function getUserJobs() {
   const { userId } = await auth();
 
   if (!userId) {
-    throw new Error("You must be signed in to view your jobs.");
+    throw new Error(
+      "You must be signed in to view your jobs."
+    );
   }
 
   try {
@@ -137,7 +145,10 @@ export async function getUserJobs() {
 
     return userJobs;
   } catch (error) {
-    console.error("GET USER JOBS ERROR:", error);
+    console.error(
+      "GET USER JOBS ERROR:",
+      error
+    );
 
     throw new Error(
       error instanceof Error
@@ -147,24 +158,18 @@ export async function getUserJobs() {
   }
 }
 
-/**
- * Process a job.
- *
- * TEMPORARY:
- * This does not download or convert anything yet.
- * It only simulates the processing lifecycle:
- *
- * pending → processing → completed
- */
-export async function processJob(jobId: string) {
+export async function processJob(
+  jobId: string
+) {
   const { userId } = await auth();
 
   if (!userId) {
-    throw new Error("You must be signed in.");
+    throw new Error(
+      "You must be signed in."
+    );
   }
 
   try {
-    // Find the current user's database record.
     const databaseUsers = await db
       .select()
       .from(users)
@@ -174,10 +179,11 @@ export async function processJob(jobId: string) {
     const databaseUser = databaseUsers[0];
 
     if (!databaseUser) {
-      throw new Error("User not found.");
+      throw new Error(
+        "User not found."
+      );
     }
 
-    // Find the requested job.
     const existingJobs = await db
       .select()
       .from(jobs)
@@ -187,38 +193,55 @@ export async function processJob(jobId: string) {
     const job = existingJobs[0];
 
     if (!job) {
-      throw new Error("Job not found.");
+      throw new Error(
+        "Job not found."
+      );
     }
 
-    // Security check:
-    // A user can only process their own jobs.
     if (job.userId !== databaseUser.id) {
       throw new Error(
         "You do not have permission to process this job."
       );
     }
 
-    // Move job to processing.
+    // Mark job as processing
     await db
       .update(jobs)
       .set({
         status: "processing",
+        errorMessage: null,
       })
       .where(eq(jobs.id, jobId));
 
-    // TEMPORARY PROCESSING SIMULATION
-    // Later this will be replaced with the actual
-    // video downloading / GIF conversion process.
-    await new Promise((resolve) =>
-      setTimeout(resolve, 3000)
-    );
+    // TEMPORARY TEST SOURCE
+    //
+    // We are intentionally NOT using job.sourceUrl yet.
+    // Shotstack needs a direct public video URL.
+    const testVideoUrl =
+      "https://shotstack-assets.s3-ap-southeast-2.amazonaws.com/footage/earth.mp4";
 
-    // Mark job as completed.
+    // Send video to Shotstack and wait
+    // until the GIF rendering is completed.
+    const result =
+      await createShotstackGif(
+        testVideoUrl
+      );
+
+    if (!result.url) {
+      throw new Error(
+        "Shotstack completed but did not return a GIF URL."
+      );
+    }
+
+    // Save the generated GIF URL
+    // and mark the job as completed.
     const completedJobs = await db
       .update(jobs)
       .set({
         status: "completed",
+        outputUrl: result.url,
         completedAt: new Date(),
+        errorMessage: null,
       })
       .where(eq(jobs.id, jobId))
       .returning();
@@ -228,9 +251,12 @@ export async function processJob(jobId: string) {
       job: completedJobs[0],
     };
   } catch (error) {
-    console.error("PROCESS JOB ERROR:", error);
+    console.error(
+      "PROCESS JOB ERROR:",
+      error
+    );
 
-    // Try to mark the job as failed.
+    // If anything fails, mark the job as failed.
     try {
       await db
         .update(jobs)
