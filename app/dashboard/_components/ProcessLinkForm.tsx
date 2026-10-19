@@ -62,7 +62,7 @@ export default function ProcessLinkForm() {
   }
 
   return (
-    <div className="mt-8 flex flex-col gap-2 rounded-2xl border border-neutral-200 bg-neutral-50 p-2 transition-all focus-within:border-purple-300 focus-within:bg-white focus-within:shadow-[0_0_0_4px_rgba(168,85,247,0.08)] sm:flex-row">
+    <div className="mt-8 flex flex-col gap-2 rounded-2xl border border-neutral-200 bg-neutral-50 p-2 font-[var(--font-roboto-flex)] transition-all focus-within:border-purple-300 focus-within:bg-white focus-within:shadow-[0_0_0_4px_rgba(168,85,247,0.08)] sm:flex-row dark:border-white/[0.1] dark:bg-black/20 dark:focus-within:bg-white/[0.06]">
       <div className="flex flex-1 items-center px-4">
         <svg
           width="18"
@@ -89,7 +89,7 @@ export default function ProcessLinkForm() {
             }
           }}
           placeholder="Paste a YouTube, Instagram, Reddit or X link..."
-          className="w-full bg-transparent py-3 text-sm outline-none placeholder:text-neutral-400"
+          className="w-full bg-transparent py-3 text-sm text-neutral-950 outline-none placeholder:text-neutral-400 dark:text-white dark:placeholder:text-neutral-500"
           disabled={isSubmitting}
         />
       </div>

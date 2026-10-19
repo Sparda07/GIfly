@@ -68,7 +68,7 @@ export default function NavBar() {
 
   return (
     <header
-      className={`sticky top-0 z-50 border-b backdrop-blur-2xl transition-colors duration-700 ${
+      className={`sticky top-0 z-50 border-b font-[var(--font-roboto-flex)] backdrop-blur-2xl transition-colors duration-700 ${
         darkMode
           ? "border-white/[0.06] bg-[#111014]/80"
           : "border-black/[0.06] bg-white/75"
@@ -89,7 +89,20 @@ export default function NavBar() {
                 : "bg-neutral-950"
             }`}
           >
-            <span className="text-sm font-bold">G</span>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.25"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-5 w-5"
+              aria-hidden="true"
+            >
+              <path d="M7.2 6.5A7.5 7.5 0 1 1 4.8 12" />
+              <path d="M4.5 5.2v4h4" />
+              <path d="m10 8.7 5 3.3-5 3.3V8.7Z" fill="currentColor" stroke="none" />
+            </svg>
           </div>
 
           <div>
@@ -110,7 +123,7 @@ export default function NavBar() {
                   : "text-neutral-400"
               }`}
             >
-              Turn Links Into GIFs
+              CREATE • LOOP • SHARE
             </p>
           </div>
         </Link>

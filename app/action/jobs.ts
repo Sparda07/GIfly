@@ -1,9 +1,13 @@
 "use server";
 
 import { auth, clerkClient } from "@clerk/nextjs/server";
-import { desc, eq } from "drizzle-orm";
+import { and, count, desc, eq, gte } from "drizzle-orm";
 
-import { createShotstackGif } from "@/app/action/shotstack";
+import {
+  createShotstackGif,
+  stageVideoForShotstack,
+} from "@/app/action/shotstack";
+import { getYouTubeVideoUrl } from "@/app/action/youtube";
 import { db } from "@/drizzle/db";
 import { jobs, users } from "@/drizzle/schema";
 
@@ -27,17 +31,23 @@ export async function createJob(
   const { userId } = await auth();
 
   if (!userId) {
-    throw new Error("You must be signed in to create a job.");
+    throw new Error(
+      "You must be signed in to create a job."
+    );
   }
 
   try {
     const client = await clerkClient();
-    const clerkUser = await client.users.getUser(userId);
 
-    const email = clerkUser.emailAddresses.find(
-      (email) =>
-        email.id === clerkUser.primaryEmailAddressId
-    )?.emailAddress;
+    const clerkUser =
+      await client.users.getUser(userId);
+
+    const email =
+      clerkUser.emailAddresses.find(
+        (email) =>
+          email.id ===
+          clerkUser.primaryEmailAddressId
+      )?.emailAddress;
 
     if (!email) {
       throw new Error(
@@ -51,7 +61,9 @@ export async function createJob(
       existingUsers = await db
         .select()
         .from(users)
-        .where(eq(users.clerkUserId, userId))
+        .where(
+          eq(users.clerkUserId, userId)
+        )
         .limit(1);
     } catch (error) {
       console.error(
@@ -62,7 +74,8 @@ export async function createJob(
       throw error;
     }
 
-    let databaseUser = existingUsers[0];
+    let databaseUser =
+      existingUsers[0];
 
     if (!databaseUser) {
       const newUsers = await db
@@ -127,10 +140,13 @@ export async function getUserJobs() {
     const databaseUsers = await db
       .select()
       .from(users)
-      .where(eq(users.clerkUserId, userId))
+      .where(
+        eq(users.clerkUserId, userId)
+      )
       .limit(1);
 
-    const databaseUser = databaseUsers[0];
+    const databaseUser =
+      databaseUsers[0];
 
     if (!databaseUser) {
       return [];
@@ -139,8 +155,12 @@ export async function getUserJobs() {
     const userJobs = await db
       .select()
       .from(jobs)
-      .where(eq(jobs.userId, databaseUser.id))
-      .orderBy(desc(jobs.createdAt))
+      .where(
+        eq(jobs.userId, databaseUser.id)
+      )
+      .orderBy(
+        desc(jobs.createdAt)
+      )
       .limit(5);
 
     return userJobs;
@@ -158,6 +178,76 @@ export async function getUserJobs() {
   }
 }
 
+export async function getDashboardData() {
+  const { userId } = await auth();
+
+  if (!userId) {
+    throw new Error("You must be signed in to view your dashboard.");
+  }
+
+  const [databaseUser] = await db
+    .select({
+      id: users.id,
+      plan: users.plan,
+    })
+    .from(users)
+    .where(eq(users.clerkUserId, userId))
+    .limit(1);
+
+  if (!databaseUser) {
+    return {
+      recentJobs: [],
+      todayJobs: 0,
+      totalJobs: 0,
+      completedJobs: 0,
+      plan: "free" as const,
+    };
+  }
+
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+
+  const [recentJobs, todayResult, totalResult, completedResult] =
+    await Promise.all([
+      db
+        .select()
+        .from(jobs)
+        .where(eq(jobs.userId, databaseUser.id))
+        .orderBy(desc(jobs.createdAt))
+        .limit(5),
+      db
+        .select({ value: count() })
+        .from(jobs)
+        .where(
+          and(
+            eq(jobs.userId, databaseUser.id),
+            gte(jobs.createdAt, startOfToday)
+          )
+        ),
+      db
+        .select({ value: count() })
+        .from(jobs)
+        .where(eq(jobs.userId, databaseUser.id)),
+      db
+        .select({ value: count() })
+        .from(jobs)
+        .where(
+          and(
+            eq(jobs.userId, databaseUser.id),
+            eq(jobs.status, "completed")
+          )
+        ),
+    ]);
+
+  return {
+    recentJobs,
+    todayJobs: todayResult[0]?.value ?? 0,
+    totalJobs: totalResult[0]?.value ?? 0,
+    completedJobs: completedResult[0]?.value ?? 0,
+    plan: databaseUser.plan,
+  };
+}
+
 export async function processJob(
   jobId: string
 ) {
@@ -170,19 +260,30 @@ export async function processJob(
   }
 
   try {
+    // --------------------------------
+    // 1. Find database user
+    // --------------------------------
+
     const databaseUsers = await db
       .select()
       .from(users)
-      .where(eq(users.clerkUserId, userId))
+      .where(
+        eq(users.clerkUserId, userId)
+      )
       .limit(1);
 
-    const databaseUser = databaseUsers[0];
+    const databaseUser =
+      databaseUsers[0];
 
     if (!databaseUser) {
       throw new Error(
         "User not found."
       );
     }
+
+    // --------------------------------
+    // 2. Find job
+    // --------------------------------
 
     const existingJobs = await db
       .select()
@@ -198,13 +299,22 @@ export async function processJob(
       );
     }
 
-    if (job.userId !== databaseUser.id) {
+    // --------------------------------
+    // 3. Verify ownership
+    // --------------------------------
+
+    if (
+      job.userId !== databaseUser.id
+    ) {
       throw new Error(
         "You do not have permission to process this job."
       );
     }
 
-    // Mark job as processing
+    // --------------------------------
+    // 4. Mark job as processing
+    // --------------------------------
+
     await db
       .update(jobs)
       .set({
@@ -213,19 +323,64 @@ export async function processJob(
       })
       .where(eq(jobs.id, jobId));
 
-    // TEMPORARY TEST SOURCE
-    //
-    // We are intentionally NOT using job.sourceUrl yet.
-    // Shotstack needs a direct public video URL.
-    const testVideoUrl =
-      "https://shotstack-assets.s3-ap-southeast-2.amazonaws.com/footage/earth.mp4";
+    // --------------------------------
+    // 5. Resolve source video
+    // --------------------------------
 
-    // Send video to Shotstack and wait
-    // until the GIF rendering is completed.
+    let videoUrl: string;
+
+    if (job.platform === "youtube") {
+      console.log(
+        "RESOLVING YOUTUBE VIDEO..."
+      );
+
+      videoUrl =
+        await getYouTubeVideoUrl(
+          job.sourceUrl
+        );
+
+      console.log(
+        "YOUTUBE VIDEO RESOLVED:",
+        videoUrl
+      );
+    } else {
+      throw new Error(
+        `Platform "${job.platform}" is not implemented yet.`
+      );
+    }
+
+    // --------------------------------
+    // 6. Stage the video with Shotstack
+    // --------------------------------
+
+    console.log(
+      "UPLOADING SOURCE VIDEO TO SHOTSTACK..."
+    );
+
+    const stagedVideoUrl =
+      await stageVideoForShotstack(videoUrl);
+
+    // --------------------------------
+    // 7. Render the staged video
+    // --------------------------------
+
+    console.log(
+      "STARTING SHOTSTACK RENDER..."
+    );
+
     const result =
       await createShotstackGif(
-        testVideoUrl
+        stagedVideoUrl
       );
+
+    console.log(
+      "SHOTSTACK RESULT:",
+      result
+    );
+
+    // --------------------------------
+    // 8. Validate Shotstack result
+    // --------------------------------
 
     if (!result.url) {
       throw new Error(
@@ -233,18 +388,21 @@ export async function processJob(
       );
     }
 
-    // Save the generated GIF URL
-    // and mark the job as completed.
-    const completedJobs = await db
-      .update(jobs)
-      .set({
-        status: "completed",
-        outputUrl: result.url,
-        completedAt: new Date(),
-        errorMessage: null,
-      })
-      .where(eq(jobs.id, jobId))
-      .returning();
+    // --------------------------------
+    // 9. Save completed job
+    // --------------------------------
+
+    const completedJobs =
+      await db
+        .update(jobs)
+        .set({
+          status: "completed",
+          outputUrl: result.url,
+          completedAt: new Date(),
+          errorMessage: null,
+        })
+        .where(eq(jobs.id, jobId))
+        .returning();
 
     return {
       success: true,
@@ -256,7 +414,10 @@ export async function processJob(
       error
     );
 
-    // If anything fails, mark the job as failed.
+    // --------------------------------
+    // 10. Mark job as failed
+    // --------------------------------
+
     try {
       await db
         .update(jobs)

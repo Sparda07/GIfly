@@ -1,41 +1,51 @@
-import { getUserJobs } from "@/app/action/jobs";
+import { getDashboardData } from "@/app/action/jobs";
 import ProcessLinkForm from "@/app/dashboard/_components/ProcessLinkForm";
 
 export default async function DashboardPage() {
-  const recentJobs = await getUserJobs();
+  const {
+    recentJobs,
+    todayJobs,
+    totalJobs,
+    completedJobs,
+    plan,
+  } = await getDashboardData();
+  const planName = `${plan.charAt(0).toUpperCase()}${plan.slice(1)}`;
 
   return (
-    <main className="pb-16">
+    <main className="pb-16 font-[var(--font-roboto-flex)]">
       {/* HEADER */}
-      <section className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
-        <div>
-          <div className="mb-3 flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-purple-500" />
+      <section className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-white/75 p-7 shadow-[0_12px_40px_rgba(31,20,52,0.05)] backdrop-blur-sm sm:p-9 dark:border-white/[0.08] dark:bg-white/[0.04]">
+        <div className="pointer-events-none absolute -right-24 -top-28 h-72 w-72 rounded-full bg-fuchsia-300/20 blur-3xl" />
+        <div className="relative flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+          <div>
+            <div className="mb-3 flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-purple-500" />
 
-            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-purple-600">
-              Workspace
-            </span>
+              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-purple-600">
+                Workspace
+              </span>
+            </div>
+
+            <h1 className="text-3xl font-extrabold tracking-[-0.055em] text-neutral-950 sm:text-5xl dark:text-white">
+              Welcome back.
+            </h1>
+
+            <p className="mt-2 text-[15px] leading-6 text-neutral-500 dark:text-neutral-400">
+              Manage your files, links, and creative work from one place.
+            </p>
           </div>
 
-          <h1 className="text-3xl font-bold tracking-[-0.04em] text-neutral-950 sm:text-4xl">
-            Welcome back.
-          </h1>
-
-          <p className="mt-2 text-[15px] leading-6 text-neutral-500">
-            Manage your files, links, and creative work from one place.
-          </p>
-        </div>
-
-        <div className="inline-flex w-fit items-center gap-2 rounded-full border border-purple-100 bg-white px-4 py-2 text-xs font-semibold text-neutral-600 shadow-sm">
-          <span className="h-2 w-2 rounded-full bg-emerald-500" />
-          Free Plan
+          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-purple-100 bg-white/90 px-4 py-2 text-xs font-bold text-neutral-600 shadow-sm dark:border-white/[0.1] dark:bg-white/[0.08] dark:text-neutral-300">
+            <span className="h-2 w-2 rounded-full bg-emerald-500" />
+          {planName} Plan
+          </div>
         </div>
       </section>
 
       {/* STAT CARDS */}
       <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {/* Daily usage */}
-        <div className="group rounded-2xl border border-black/[0.06] bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_15px_40px_rgba(0,0,0,0.06)]">
+        <div className="group rounded-2xl border border-white bg-white/90 p-5 shadow-[0_2px_12px_rgba(31,20,52,0.04)] transition-all duration-300 hover:-translate-y-1 hover:border-purple-100 hover:shadow-[0_18px_40px_rgba(126,34,206,0.1)] dark:border-white/[0.08] dark:bg-white/[0.05]">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-neutral-500">
               Daily usage
@@ -48,21 +58,24 @@ export default async function DashboardPage() {
 
           <div className="mt-5 flex items-end gap-2">
             <span className="text-3xl font-bold tracking-[-0.04em]">
-              1
+              {todayJobs}
             </span>
 
             <span className="mb-1 text-sm text-neutral-400">
-              / 1 links
+              links today
             </span>
           </div>
 
           <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-neutral-100">
-            <div className="h-full w-full rounded-full bg-purple-500" />
+            <div
+              className="h-full rounded-full bg-purple-500"
+              style={{ width: `${Math.min(todayJobs * 25, 100)}%` }}
+            />
           </div>
         </div>
 
         {/* Total downloads */}
-        <div className="group rounded-2xl border border-black/[0.06] bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_15px_40px_rgba(0,0,0,0.06)]">
+        <div className="group rounded-2xl border border-white bg-white/90 p-5 shadow-[0_2px_12px_rgba(31,20,52,0.04)] transition-all duration-300 hover:-translate-y-1 hover:border-purple-100 hover:shadow-[0_18px_40px_rgba(126,34,206,0.1)] dark:border-white/[0.08] dark:bg-white/[0.05]">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-neutral-500">
               Total downloads
@@ -74,7 +87,7 @@ export default async function DashboardPage() {
           </div>
 
           <p className="mt-5 text-3xl font-bold tracking-[-0.04em]">
-            24
+            {totalJobs}
           </p>
 
           <p className="mt-2 text-xs text-neutral-400">
@@ -83,7 +96,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* GIFs created */}
-        <div className="group rounded-2xl border border-black/[0.06] bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_15px_40px_rgba(0,0,0,0.06)]">
+        <div className="group rounded-2xl border border-white bg-white/90 p-5 shadow-[0_2px_12px_rgba(31,20,52,0.04)] transition-all duration-300 hover:-translate-y-1 hover:border-purple-100 hover:shadow-[0_18px_40px_rgba(126,34,206,0.1)] dark:border-white/[0.08] dark:bg-white/[0.05]">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-neutral-500">
               GIFs created
@@ -95,7 +108,7 @@ export default async function DashboardPage() {
           </div>
 
           <p className="mt-5 text-3xl font-bold tracking-[-0.04em]">
-            8
+            {completedJobs}
           </p>
 
           <p className="mt-2 text-xs text-neutral-400">
@@ -104,7 +117,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Current plan */}
-        <div className="group rounded-2xl border border-black/[0.06] bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_15px_40px_rgba(0,0,0,0.06)]">
+        <div className="group rounded-2xl border border-white bg-white/90 p-5 shadow-[0_2px_12px_rgba(31,20,52,0.04)] transition-all duration-300 hover:-translate-y-1 hover:border-purple-100 hover:shadow-[0_18px_40px_rgba(126,34,206,0.1)] dark:border-white/[0.08] dark:bg-white/[0.05]">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-neutral-500">
               Current plan
@@ -116,7 +129,7 @@ export default async function DashboardPage() {
           </div>
 
           <p className="mt-5 text-3xl font-bold tracking-[-0.04em]">
-            Free
+            {planName}
           </p>
 
           <button className="mt-2 text-xs font-semibold text-purple-600 transition-colors hover:text-purple-800">
@@ -127,7 +140,7 @@ export default async function DashboardPage() {
 
       {/* MAIN ACTION */}
       <section className="mt-6">
-        <div className="relative overflow-hidden rounded-3xl border border-purple-100 bg-white p-7 shadow-[0_4px_30px_rgba(0,0,0,0.04)] sm:p-9">
+        <div className="relative overflow-hidden rounded-3xl border border-white bg-white/90 p-7 shadow-[0_10px_35px_rgba(31,20,52,0.06)] sm:p-9 dark:border-white/[0.08] dark:bg-white/[0.05]">
           <div className="pointer-events-none absolute -right-20 -top-32 h-72 w-72 rounded-full bg-purple-400/10 blur-3xl" />
 
           <div className="relative">
@@ -172,7 +185,7 @@ export default async function DashboardPage() {
       {/* BOTTOM */}
       <section className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
         {/* RECENT ACTIVITY */}
-        <div className="rounded-3xl border border-black/[0.06] bg-white p-6 shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
+        <div className="rounded-3xl border border-white bg-white/90 p-6 shadow-[0_10px_35px_rgba(31,20,52,0.05)] backdrop-blur-sm dark:border-white/[0.08] dark:bg-white/[0.05]">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-bold tracking-[-0.03em]">
@@ -194,12 +207,15 @@ export default async function DashboardPage() {
               recentJobs.map((job) => (
                 <Activity
                   key={job.id}
+                  jobId={job.id}
                   icon={getPlatformIcon(job.platform)}
                   iconClass={getPlatformIconClass(job.platform)}
                   title={getPlatformTitle(job.platform)}
                   url={job.sourceUrl}
                   time={formatJobTime(job.createdAt)}
                   status={job.status}
+                  outputUrl={job.outputUrl}
+                  errorMessage={job.errorMessage}
                 />
               ))
             ) : (
@@ -226,7 +242,7 @@ export default async function DashboardPage() {
             </span>
 
             <h2 className="mt-4 text-3xl font-bold tracking-[-0.04em]">
-              Free
+              {planName}
             </h2>
 
             <p className="mt-3 text-sm leading-6 text-neutral-400">
@@ -240,11 +256,14 @@ export default async function DashboardPage() {
                 Daily usage
               </span>
 
-              <span>1 / 1</span>
+              <span>{todayJobs} today</span>
             </div>
 
             <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
-              <div className="h-full w-full rounded-full bg-purple-500" />
+              <div
+                className="h-full rounded-full bg-purple-500"
+                style={{ width: `${Math.min(todayJobs * 25, 100)}%` }}
+              />
             </div>
 
             <button className="mt-7 w-full rounded-xl bg-white py-3 text-sm font-semibold text-neutral-950 transition-all hover:bg-purple-50">
@@ -262,51 +281,105 @@ export default async function DashboardPage() {
 /* -------------------------------------------------- */
 
 function Activity({
+  jobId,
   icon,
   iconClass,
   title,
   url,
   time,
   status,
+  outputUrl,
+  errorMessage,
 }: {
+  jobId: string;
   icon: string;
   iconClass: string;
   title: string;
   url: string;
   time: string;
   status: string;
+  outputUrl: string | null;
+  errorMessage: string | null;
 }) {
+  const completedGifUrl =
+    status === "completed" ? outputUrl ?? undefined : undefined;
+  const isCompleted = Boolean(completedGifUrl);
+
   return (
-    <div className="flex items-center justify-between gap-4 py-4">
+    <div className="flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex min-w-0 items-center gap-3">
-        <div
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${iconClass}`}
-        >
-          {icon}
-        </div>
+        {isCompleted ? (
+          <img
+            src={completedGifUrl}
+            alt={`${title} GIF preview`}
+            className="h-12 w-16 shrink-0 rounded-xl border border-black/[0.06] bg-neutral-100 object-cover"
+          />
+        ) : (
+          <div
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${iconClass}`}
+          >
+            {status === "processing" ? (
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            ) : status === "failed" ? (
+              "!"
+            ) : (
+              icon
+            )}
+          </div>
+        )}
 
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-neutral-800">
+          <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">
             {title}
           </p>
 
-          <p className="mt-1 truncate text-[11px] text-neutral-400">
+          <a
+            href={url}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-1 block truncate text-[11px] text-neutral-400 transition-colors hover:text-purple-400 hover:underline"
+            title={url}
+          >
             {url}
-          </p>
+          </a>
 
           <p className="mt-1 text-[11px] text-neutral-400">
             {time}
           </p>
+
+          {status === "processing" && (
+            <p className="mt-1 text-[11px] font-medium text-blue-600">
+              Creating your GIF…
+            </p>
+          )}
+
+          {status === "failed" && errorMessage && (
+            <p className="mt-1 line-clamp-1 text-[11px] text-red-500" title={errorMessage}>
+              {errorMessage}
+            </p>
+          )}
         </div>
       </div>
 
-      <span
-        className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-semibold ${getStatusClass(
-          status
-        )}`}
-      >
-        {formatStatus(status)}
-      </span>
+      <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto">
+        <span
+          className={`rounded-full px-3 py-1 text-[10px] font-semibold ${getStatusClass(
+            status
+          )}`}
+        >
+          {formatStatus(status)}
+        </span>
+
+        {isCompleted && (
+          <a
+            href={`/api/jobs/${jobId}/download`}
+            download
+            className="rounded-lg bg-neutral-950 px-3 py-1.5 text-[10px] font-semibold text-white transition-colors hover:bg-purple-700"
+          >
+            Download GIF
+          </a>
+        )}
+      </div>
     </div>
   );
 }

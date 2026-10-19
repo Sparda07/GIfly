@@ -3,6 +3,7 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useState,
   ReactNode,
 } from "react";
@@ -23,8 +24,22 @@ export function ThemeProvider({
 }) {
   const [darkMode, setDarkMode] = useState(true);
 
+  useEffect(() => {
+    const savedTheme = window.localStorage.getItem("gifly-theme");
+    const isDark = savedTheme ? savedTheme === "dark" : true;
+
+    setDarkMode(isDark);
+    document.documentElement.classList.toggle("dark", isDark);
+  }, []);
+
+  const setTheme = (isDark: boolean) => {
+    setDarkMode(isDark);
+    window.localStorage.setItem("gifly-theme", isDark ? "dark" : "light");
+    document.documentElement.classList.toggle("dark", isDark);
+  };
+
   return (
-    <ThemeContext.Provider value={{ darkMode, setDarkMode }}>
+    <ThemeContext.Provider value={{ darkMode, setDarkMode: setTheme }}>
       {children}
     </ThemeContext.Provider>
   );
