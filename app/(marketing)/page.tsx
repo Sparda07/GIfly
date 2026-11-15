@@ -309,15 +309,15 @@ export default function HomePage() {
           <div className="mx-auto mt-12 grid max-w-5xl gap-5 md:grid-cols-3">
             <StepCard
               number="01"
-              title="Choose a platform"
-              description="Select YouTube, Instagram, Reddit, or X from the navigation."
+              title="Paste your link"
+              description="Start with a link from YouTube, Instagram, Reddit, or X."
               darkMode={darkMode}
             />
 
             <StepCard
               number="02"
-              title="Paste your link"
-              description="Add the video URL you want to process."
+              title="Choose your output"
+              description="Tell GIFLY what you want to create from your video."
               darkMode={darkMode}
             />
 

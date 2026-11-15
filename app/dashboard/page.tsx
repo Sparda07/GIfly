@@ -1,15 +1,15 @@
 import { getDashboardData } from "@/app/action/jobs";
 import ProcessLinkForm from "@/app/dashboard/_components/ProcessLinkForm";
 
+export const instant = false;
+
 export default async function DashboardPage() {
   const {
     recentJobs,
     todayJobs,
     totalJobs,
     completedJobs,
-    plan,
   } = await getDashboardData();
-  const planName = `${plan.charAt(0).toUpperCase()}${plan.slice(1)}`;
 
   return (
     <main className="pb-16 font-[var(--font-roboto-flex)]">
@@ -35,15 +35,11 @@ export default async function DashboardPage() {
             </p>
           </div>
 
-          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-purple-100 bg-white/90 px-4 py-2 text-xs font-bold text-neutral-600 shadow-sm dark:border-white/[0.1] dark:bg-white/[0.08] dark:text-neutral-300">
-            <span className="h-2 w-2 rounded-full bg-emerald-500" />
-          {planName} Plan
-          </div>
         </div>
       </section>
 
       {/* STAT CARDS */}
-      <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="mt-8 grid gap-4 sm:grid-cols-3">
         {/* Daily usage */}
         <div className="group rounded-2xl border border-white bg-white/90 p-5 shadow-[0_2px_12px_rgba(31,20,52,0.04)] transition-all duration-300 hover:-translate-y-1 hover:border-purple-100 hover:shadow-[0_18px_40px_rgba(126,34,206,0.1)] dark:border-white/[0.08] dark:bg-white/[0.05]">
           <div className="flex items-center justify-between">
@@ -116,26 +112,6 @@ export default async function DashboardPage() {
           </p>
         </div>
 
-        {/* Current plan */}
-        <div className="group rounded-2xl border border-white bg-white/90 p-5 shadow-[0_2px_12px_rgba(31,20,52,0.04)] transition-all duration-300 hover:-translate-y-1 hover:border-purple-100 hover:shadow-[0_18px_40px_rgba(126,34,206,0.1)] dark:border-white/[0.08] dark:bg-white/[0.05]">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-neutral-500">
-              Current plan
-            </p>
-
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-sm text-amber-600">
-              ★
-            </span>
-          </div>
-
-          <p className="mt-5 text-3xl font-bold tracking-[-0.04em]">
-            {planName}
-          </p>
-
-          <button className="mt-2 text-xs font-semibold text-purple-600 transition-colors hover:text-purple-800">
-            Upgrade plan →
-          </button>
-        </div>
       </section>
 
       {/* MAIN ACTION */}
@@ -183,7 +159,7 @@ export default async function DashboardPage() {
       </section>
 
       {/* BOTTOM */}
-      <section className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
+      <section className="mt-6">
         {/* RECENT ACTIVITY */}
         <div className="rounded-3xl border border-white bg-white/90 p-6 shadow-[0_10px_35px_rgba(31,20,52,0.05)] backdrop-blur-sm dark:border-white/[0.08] dark:bg-white/[0.05]">
           <div className="flex items-center justify-between">
@@ -232,45 +208,6 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* PLAN CARD */}
-        <div className="relative overflow-hidden rounded-3xl bg-neutral-950 p-7 text-white shadow-xl">
-          <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-purple-600/30 blur-3xl" />
-
-          <div className="relative">
-            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-purple-300">
-              Current plan
-            </span>
-
-            <h2 className="mt-4 text-3xl font-bold tracking-[-0.04em]">
-              {planName}
-            </h2>
-
-            <p className="mt-3 text-sm leading-6 text-neutral-400">
-              Perfect for trying GIFLY before upgrading.
-            </p>
-
-            <div className="my-7 h-px bg-white/10" />
-
-            <div className="flex justify-between text-xs">
-              <span className="text-neutral-400">
-                Daily usage
-              </span>
-
-              <span>{todayJobs} today</span>
-            </div>
-
-            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
-              <div
-                className="h-full rounded-full bg-purple-500"
-                style={{ width: `${Math.min(todayJobs * 25, 100)}%` }}
-              />
-            </div>
-
-            <button className="mt-7 w-full rounded-xl bg-white py-3 text-sm font-semibold text-neutral-950 transition-all hover:bg-purple-50">
-              Upgrade plan
-            </button>
-          </div>
-        </div>
       </section>
     </main>
   );

@@ -16,7 +16,7 @@ export default function DashboardNavbar() {
       <div className="mx-auto flex h-[72px] max-w-[1400px] items-center justify-between px-5 sm:px-8">
         {/* LOGO */}
         <Link href="/" className="group flex items-center gap-2.5">
-          <div className={`flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-sm transition-transform duration-200 group-hover:scale-105 ${darkMode ? "bg-white text-neutral-950" : "bg-neutral-950"}`}>
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 via-fuchsia-500 to-pink-500 text-white shadow-lg shadow-purple-500/25 transition-transform duration-200 group-hover:scale-105">
             <svg
               viewBox="0 0 24 24"
               fill="none"
