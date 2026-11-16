@@ -1,11 +1,17 @@
 "use server";
 
-import { Innertube } from "youtubei.js";
+import { Innertube, UniversalCache } from "youtubei.js";
+import { env } from "@/data/env/server";
 
 let youtubeClientPromise: ReturnType<typeof Innertube.create> | undefined;
 
 function getYouTubeClient() {
-  youtubeClientPromise ??= Innertube.create();
+  youtubeClientPromise ??= Innertube.create({
+    cache: new UniversalCache(false),
+    generate_session_locally: true,
+    po_token: env.YOUTUBE_PO_TOKEN,
+    visitor_data: env.YOUTUBE_VISITOR_DATA,
+  });
   return youtubeClientPromise;
 }
 
@@ -78,48 +84,58 @@ export async function getYouTubeVideoUrl(
   try {
     const youtube = await getYouTubeClient();
 
-    // The web client can require a Proof of Origin token and sometimes
-    // responds with formats that do not contain a decipherable URL. Try two
-    // mobile clients because their available formats can vary per video.
-    let streamingData;
+    // Vercel IPs can receive different format responses from YouTube. Try
+    // embedded clients and progressively less restrictive format selections.
     let lastError: unknown;
 
-    for (const client of ["ANDROID", "IOS"] as const) {
+    const attempts = [
+      {
+        client: "WEB_EMBEDDED",
+        type: "video",
+        quality: "360p",
+        format: "mp4",
+      },
+      {
+        client: "TV_EMBEDDED",
+        type: "video",
+        quality: "best",
+        format: "mp4",
+      },
+      {
+        client: "ANDROID",
+        type: "video",
+        quality: "best",
+        format: "mp4",
+      },
+      {
+        client: "IOS",
+        type: "video",
+        quality: "best",
+        format: "mp4",
+      },
+    ] as const;
+
+    for (const options of attempts) {
       try {
-        streamingData = await youtube.getStreamingData(videoId, {
-          client,
-          type: "video",
-          quality: "360p",
-          format: "mp4",
-        });
+        const streamingData =
+          await youtube.getStreamingData(videoId, options);
 
         if (streamingData.url) {
-          break;
+          console.log(
+            "DIRECT YOUTUBE VIDEO URL:",
+            streamingData.url
+          );
+
+          return streamingData.url;
         }
       } catch (error) {
         lastError = error;
       }
     }
 
-    if (!streamingData?.url) {
-      throw lastError instanceof Error
-        ? lastError
-        : new Error("YouTube did not provide a playable video URL.");
-    }
-
-    console.log(
-      "YOUTUBE STREAMING DATA:",
-      streamingData
-    );
-
-    const videoUrl = streamingData.url;
-
-    console.log(
-      "DIRECT YOUTUBE VIDEO URL:",
-      videoUrl
-    );
-
-    return videoUrl;
+    throw lastError instanceof Error
+      ? lastError
+      : new Error("YouTube did not provide a playable video URL.");
   } catch (error) {
     console.error(
       "YOUTUBE RESOLVER ERROR:",

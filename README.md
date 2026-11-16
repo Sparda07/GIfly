@@ -16,6 +16,19 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+### YouTube processing on Vercel
+
+The YouTube resolver tries embedded clients and locally generated sessions
+because Vercel server IPs can receive fewer playable formats. If YouTube still
+returns no streaming data, add the following optional environment variables in
+Vercel using a valid session-bound Proof of Origin token and its matching
+visitor data:
+
+```text
+YOUTUBE_PO_TOKEN=
+YOUTUBE_VISITOR_DATA=
+```
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
