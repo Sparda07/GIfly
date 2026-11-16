@@ -8,7 +8,6 @@ let youtubeClientPromise: ReturnType<typeof Innertube.create> | undefined;
 function getYouTubeClient() {
   youtubeClientPromise ??= Innertube.create({
     cache: new UniversalCache(false),
-    generate_session_locally: true,
     po_token: env.YOUTUBE_PO_TOKEN,
     visitor_data: env.YOUTUBE_VISITOR_DATA,
   });
@@ -90,25 +89,25 @@ export async function getYouTubeVideoUrl(
 
     const attempts = [
       {
-        client: "WEB_EMBEDDED",
+        client: "ANDROID",
         type: "video",
         quality: "360p",
         format: "mp4",
       },
       {
-        client: "TV_EMBEDDED",
-        type: "video",
-        quality: "best",
-        format: "mp4",
-      },
-      {
-        client: "ANDROID",
-        type: "video",
-        quality: "best",
-        format: "mp4",
-      },
-      {
         client: "IOS",
+        type: "video",
+        quality: "360p",
+        format: "mp4",
+      },
+      {
+        client: "WEB_EMBEDDED",
+        type: "video",
+        quality: "best",
+        format: "mp4",
+      },
+      {
+        client: "TV_EMBEDDED",
         type: "video",
         quality: "best",
         format: "mp4",
