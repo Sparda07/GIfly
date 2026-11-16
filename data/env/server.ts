@@ -10,6 +10,8 @@ export const env = createEnv({
     SHOTSTACK_API_KEY: z.string(),
     YOUTUBE_PO_TOKEN: z.string().optional(),
     YOUTUBE_VISITOR_DATA: z.string().optional(),
+    YOUTUBE_RESOLVER_URL: z.string().url().optional(),
+    YOUTUBE_RESOLVER_SECRET: z.string().optional(),
   },
 
   experimental__runtimeEnv: process.env,

@@ -18,16 +18,18 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ### YouTube processing on Vercel
 
-The YouTube resolver tries embedded clients and locally generated sessions
-because Vercel server IPs can receive fewer playable formats. If YouTube still
-returns no streaming data, add the following optional environment variables in
-Vercel using a valid session-bound Proof of Origin token and its matching
-visitor data:
+YouTube can block Vercel's shared server IPs. Deploy
+`services/youtube-resolver` on a separate worker host, then set the worker URL
+and shared secret in Vercel:
 
 ```text
-YOUTUBE_PO_TOKEN=
-YOUTUBE_VISITOR_DATA=
+YOUTUBE_RESOLVER_URL=https://your-worker.example.com/resolve
+YOUTUBE_RESOLVER_SECRET=replace-with-a-long-random-secret
 ```
+
+The worker also accepts optional `YOUTUBE_PO_TOKEN` and
+`YOUTUBE_VISITOR_DATA` variables. Keep these values in environment settings;
+do not commit them.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 

@@ -75,6 +75,40 @@ export async function getYouTubeVideoUrl(
   const videoId =
     extractYouTubeVideoId(youtubeUrl);
 
+  if (env.YOUTUBE_RESOLVER_URL) {
+    const response = await fetch(
+      env.YOUTUBE_RESOLVER_URL,
+      {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          ...(env.YOUTUBE_RESOLVER_SECRET
+            ? {
+                Authorization: `Bearer ${env.YOUTUBE_RESOLVER_SECRET}`,
+              }
+            : {}),
+        },
+        body: JSON.stringify({ url: youtubeUrl }),
+        cache: "no-store",
+      }
+    );
+
+    const data = (await response.json()) as {
+      url?: string;
+      error?: string;
+    };
+
+    if (!response.ok || !data.url) {
+      throw new Error(
+        data.error ||
+          `YouTube resolver worker failed (${response.status}).`
+      );
+    }
+
+    return data.url;
+  }
+
   console.log(
     "YOUTUBE VIDEO ID:",
     videoId
