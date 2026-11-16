@@ -67,16 +67,24 @@ export async function stageVideoForShotstack(
     );
   }
 
+  const sourceBytes = await videoResponse.arrayBuffer();
+
   const uploadResponse = await fetch(uploadUrl, {
     method: "PUT",
-    body: videoResponse.body,
-    // Node.js requires this when the request body is a ReadableStream.
-    duplex: "half",
-  } as RequestInit & { duplex: "half" });
+    headers: {
+      "Content-Type": "video/mp4",
+      "Content-Length": String(sourceBytes.byteLength),
+    },
+    body: sourceBytes,
+  });
 
   if (!uploadResponse.ok) {
+    const uploadError = await uploadResponse.text();
+
     throw new Error(
-      `Unable to upload the source video to Shotstack (${uploadResponse.status}).`
+      `Unable to upload the source video to Shotstack (${uploadResponse.status}).${
+        uploadError ? ` ${uploadError.slice(0, 300)}` : ""
+      }`
     );
   }
 
