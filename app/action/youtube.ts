@@ -2,6 +2,13 @@
 
 import { Innertube } from "youtubei.js";
 
+let youtubeClientPromise: ReturnType<typeof Innertube.create> | undefined;
+
+function getYouTubeClient() {
+  youtubeClientPromise ??= Innertube.create();
+  return youtubeClientPromise;
+}
+
 function extractYouTubeVideoId(url: string): string {
   try {
     const parsedUrl = new URL(url);
@@ -69,8 +76,7 @@ export async function getYouTubeVideoUrl(
   );
 
   try {
-    const youtube =
-      await Innertube.create();
+    const youtube = await getYouTubeClient();
 
     // The web client can require a Proof of Origin token and sometimes
     // responds with formats that do not contain a decipherable URL. Try two

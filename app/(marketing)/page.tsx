@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useState } from "react";
 
 import { createJob } from "@/app/action/jobs";
@@ -9,6 +10,21 @@ import { detectPlatform } from "@/lib/platform/detect";
 
 import { usePlatformTheme } from "./_context/PlatformThemeContext";
 import { useTheme } from "./_context/ThemeContext";
+const ThreeDMarquee = dynamic(
+  () =>
+    import("./_components/ContactAnimations").then(
+      (module) => module.ThreeDMarquee
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        aria-hidden="true"
+        className="h-[420px] w-full animate-pulse rounded-2xl bg-black/[0.03] dark:bg-white/[0.03]"
+      />
+    ),
+  }
+);
 
 const platformBackgrounds = {
   default: "#faf7ff",
@@ -259,6 +275,29 @@ export default function HomePage() {
                   />
                 </svg>
               </Link>
+            </div>
+
+            <div className="mt-16 w-full">
+              <p
+                className={`mb-5 text-xs font-semibold uppercase tracking-[0.18em] ${
+                  darkMode ? "text-neutral-500" : "text-neutral-400"
+                }`}
+              >
+                Download inspiration
+              </p>
+              <ThreeDMarquee
+                className="h-[420px] max-w-5xl"
+                images={[
+                  "https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=970&q=80",
+                  "https://images.unsplash.com/photo-1611162618071-b39a2ec055fb?auto=format&fit=crop&w=970&q=80",
+                  "https://images.unsplash.com/photo-1611162616305-c69b3fa7fbe0?auto=format&fit=crop&w=970&q=80",
+                  "https://images.unsplash.com/photo-1611162617263-4ec3060a058e?auto=format&fit=crop&w=970&q=80",
+                  "https://images.unsplash.com/photo-1611162618479-ee3d24aaef0b?auto=format&fit=crop&w=970&q=80",
+                  "https://images.unsplash.com/photo-1611162616315-c69b3fa7fbe0?auto=format&fit=crop&w=970&q=80",
+                  "https://images.unsplash.com/photo-1611162617295-7a3d8b8b7f4e?auto=format&fit=crop&w=970&q=80",
+                  "https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=970&q=80",
+                ]}
+              />
             </div>
           </div>
         </div>

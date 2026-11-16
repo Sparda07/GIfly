@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { createJob, processJob } from "@/app/action/jobs";
 import { detectPlatform } from "@/lib/platform/detect";
 import { isValidUrl } from "@/lib/validators/url";
 
 export default function ProcessLinkForm() {
+  const router = useRouter();
   const [url, setUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -46,8 +48,8 @@ export default function ProcessLinkForm() {
       // Clear input after successful processing
       setUrl("");
 
-      // Refresh the dashboard so Recent Activity gets the latest data
-      window.location.reload();
+      // Refresh server-rendered dashboard data without reloading the document.
+      router.refresh();
     } catch (error) {
       console.error("PROCESS LINK ERROR:", error);
 

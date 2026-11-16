@@ -28,6 +28,8 @@ export function ThemeProvider({
     const savedTheme = window.localStorage.getItem("gifly-theme");
     const isDark = savedTheme ? savedTheme === "dark" : true;
 
+    // Restore the persisted client preference after hydration.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDarkMode(isDark);
     document.documentElement.classList.toggle("dark", isDark);
   }, []);

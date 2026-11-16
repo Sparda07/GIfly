@@ -37,48 +37,26 @@ export async function createJob(
   }
 
   try {
-    const client = await clerkClient();
-
-    const clerkUser =
-      await client.users.getUser(userId);
-
-    const email =
-      clerkUser.emailAddresses.find(
-        (email) =>
-          email.id ===
-          clerkUser.primaryEmailAddressId
-      )?.emailAddress;
-
-    if (!email) {
-      throw new Error(
-        "No email address found for this account."
-      );
-    }
-
-    let existingUsers;
-
-    try {
-      existingUsers = await db
-        .select()
+    let databaseUser = (
+      await db
+        .select({ id: users.id })
         .from(users)
-        .where(
-          eq(users.clerkUserId, userId)
-        )
-        .limit(1);
-    } catch (error) {
-      console.error(
-        "DATABASE QUERY ERROR:",
-        error
-      );
-
-      throw error;
-    }
-
-    let databaseUser =
-      existingUsers[0];
+        .where(eq(users.clerkUserId, userId))
+        .limit(1)
+    )[0];
 
     if (!databaseUser) {
-      const newUsers = await db
+      const client = await clerkClient();
+      const clerkUser = await client.users.getUser(userId);
+      const email = clerkUser.emailAddresses.find(
+        (email) => email.id === clerkUser.primaryEmailAddressId
+      )?.emailAddress;
+
+      if (!email) {
+        throw new Error("No email address found for this account.");
+      }
+
+      const [newUser] = await db
         .insert(users)
         .values({
           clerkUserId: userId,
@@ -91,9 +69,22 @@ export async function createJob(
                 }`.trim()
               : null,
         })
-        .returning();
+        .onConflictDoNothing({ target: users.clerkUserId })
+        .returning({ id: users.id });
 
-      databaseUser = newUsers[0];
+      databaseUser =
+        newUser ??
+        (
+          await db
+            .select({ id: users.id })
+            .from(users)
+            .where(eq(users.clerkUserId, userId))
+            .limit(1)
+        )[0];
+    }
+
+    if (!databaseUser) {
+      throw new Error("Unable to create your account record.");
     }
 
     const databasePlatform =
@@ -107,7 +98,10 @@ export async function createJob(
         platform: databasePlatform,
         status: "pending",
       })
-      .returning();
+      .returning({
+        id: jobs.id,
+        status: jobs.status,
+      });
 
     return {
       success: true,
@@ -138,7 +132,7 @@ export async function getUserJobs() {
 
   try {
     const databaseUsers = await db
-      .select()
+      .select({ id: users.id })
       .from(users)
       .where(
         eq(users.clerkUserId, userId)
@@ -153,7 +147,16 @@ export async function getUserJobs() {
     }
 
     const userJobs = await db
-      .select()
+      .select({
+        id: jobs.id,
+        sourceUrl: jobs.sourceUrl,
+        platform: jobs.platform,
+        status: jobs.status,
+        outputUrl: jobs.outputUrl,
+        errorMessage: jobs.errorMessage,
+        createdAt: jobs.createdAt,
+        completedAt: jobs.completedAt,
+      })
       .from(jobs)
       .where(
         eq(jobs.userId, databaseUser.id)
@@ -210,7 +213,16 @@ export async function getDashboardData() {
   const [recentJobs, todayResult, totalResult, completedResult] =
     await Promise.all([
       db
-        .select()
+        .select({
+          id: jobs.id,
+          sourceUrl: jobs.sourceUrl,
+          platform: jobs.platform,
+          status: jobs.status,
+          outputUrl: jobs.outputUrl,
+          errorMessage: jobs.errorMessage,
+          createdAt: jobs.createdAt,
+          completedAt: jobs.completedAt,
+        })
         .from(jobs)
         .where(eq(jobs.userId, databaseUser.id))
         .orderBy(desc(jobs.createdAt))
@@ -264,16 +276,11 @@ export async function processJob(
     // 1. Find database user
     // --------------------------------
 
-    const databaseUsers = await db
-      .select()
+    const [databaseUser] = await db
+      .select({ id: users.id })
       .from(users)
-      .where(
-        eq(users.clerkUserId, userId)
-      )
+      .where(eq(users.clerkUserId, userId))
       .limit(1);
-
-    const databaseUser =
-      databaseUsers[0];
 
     if (!databaseUser) {
       throw new Error(
@@ -285,46 +292,33 @@ export async function processJob(
     // 2. Find job
     // --------------------------------
 
-    const existingJobs = await db
-      .select()
-      .from(jobs)
-      .where(eq(jobs.id, jobId))
-      .limit(1);
-
-    const job = existingJobs[0];
-
-    if (!job) {
-      throw new Error(
-        "Job not found."
-      );
-    }
-
-    // --------------------------------
-    // 3. Verify ownership
-    // --------------------------------
-
-    if (
-      job.userId !== databaseUser.id
-    ) {
-      throw new Error(
-        "You do not have permission to process this job."
-      );
-    }
-
-    // --------------------------------
-    // 4. Mark job as processing
-    // --------------------------------
-
-    await db
+    const [job] = await db
       .update(jobs)
       .set({
         status: "processing",
         errorMessage: null,
       })
-      .where(eq(jobs.id, jobId));
+      .where(
+        and(
+          eq(jobs.id, jobId),
+          eq(jobs.userId, databaseUser.id),
+          eq(jobs.status, "pending")
+        )
+      )
+      .returning({
+        id: jobs.id,
+        sourceUrl: jobs.sourceUrl,
+        platform: jobs.platform,
+      });
+
+    if (!job) {
+      throw new Error(
+        "Job not found or is already being processed."
+      );
+    }
 
     // --------------------------------
-    // 5. Resolve source video
+    // 3. Resolve source video
     // --------------------------------
 
     let videoUrl: string;
@@ -350,7 +344,7 @@ export async function processJob(
     }
 
     // --------------------------------
-    // 6. Stage the video with Shotstack
+    // 4. Stage the video with Shotstack
     // --------------------------------
 
     console.log(
@@ -361,7 +355,7 @@ export async function processJob(
       await stageVideoForShotstack(videoUrl);
 
     // --------------------------------
-    // 7. Render the staged video
+    // 5. Render the staged video
     // --------------------------------
 
     console.log(
@@ -379,7 +373,7 @@ export async function processJob(
     );
 
     // --------------------------------
-    // 8. Validate Shotstack result
+    // 6. Validate Shotstack result
     // --------------------------------
 
     if (!result.url) {
@@ -389,7 +383,7 @@ export async function processJob(
     }
 
     // --------------------------------
-    // 9. Save completed job
+    // 7. Save completed job
     // --------------------------------
 
     const completedJobs =

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { getDashboardData } from "@/app/action/jobs";
 import ProcessLinkForm from "@/app/dashboard/_components/ProcessLinkForm";
 
@@ -245,10 +246,15 @@ function Activity({
   return (
     <div className="flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex min-w-0 items-center gap-3">
-        {isCompleted ? (
-          <img
+        {completedGifUrl ? (
+          <Image
             src={completedGifUrl}
             alt={`${title} GIF preview`}
+            loading="lazy"
+            decoding="async"
+            width={64}
+            height={48}
+            unoptimized
             className="h-12 w-16 shrink-0 rounded-xl border border-black/[0.06] bg-neutral-100 object-cover"
           />
         ) : (

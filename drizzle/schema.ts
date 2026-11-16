@@ -125,6 +125,11 @@ import {
     (table) => ({
       userIdIndex: index("jobs_user_id_idx").on(table.userId),
   
+      userCreatedAtIndex: index("jobs_user_created_at_idx").on(
+        table.userId,
+        table.createdAt
+      ),
+
       statusIndex: index("jobs_status_idx").on(table.status),
   
       createdAtIndex: index("jobs_created_at_idx").on(
