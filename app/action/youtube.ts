@@ -106,7 +106,12 @@ export async function getYouTubeVideoUrl(
       );
     }
 
-    return data.url;
+    const resolverUrl = new URL(env.YOUTUBE_RESOLVER_URL);
+    resolverUrl.pathname = "/stream";
+    resolverUrl.search = "";
+    resolverUrl.searchParams.set("url", youtubeUrl);
+
+    return resolverUrl.toString();
   }
 
   console.log(

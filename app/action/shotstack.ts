@@ -32,7 +32,22 @@ type ShotstackSourceStatus = {
 export async function stageVideoForShotstack(
   sourceUrl: string
 ): Promise<string> {
-  const videoResponse = await fetch(sourceUrl);
+  const sourceUrlObject = new URL(sourceUrl);
+  const resolverUrl = env.YOUTUBE_RESOLVER_URL
+    ? new URL(env.YOUTUBE_RESOLVER_URL)
+    : undefined;
+  const sourceHeaders =
+    resolverUrl &&
+    sourceUrlObject.origin === resolverUrl.origin &&
+    env.YOUTUBE_RESOLVER_SECRET
+      ? {
+          Authorization: `Bearer ${env.YOUTUBE_RESOLVER_SECRET}`,
+        }
+      : undefined;
+
+  const videoResponse = await fetch(sourceUrl, {
+    headers: sourceHeaders,
+  });
 
   if (!videoResponse.ok || !videoResponse.body) {
     throw new Error(

@@ -76,6 +76,51 @@ async function resolveVideo(value: string) {
     : new Error("YouTube did not provide streaming data.");
 }
 
+async function streamVideo(
+  value: string,
+  response: import("node:http").ServerResponse
+) {
+  const videoResponse = await fetch(
+    await resolveVideo(value)
+  );
+
+  if (!videoResponse.ok || !videoResponse.body) {
+    throw new Error(
+      `Unable to download the YouTube video (${videoResponse.status}).`
+    );
+  }
+
+  response.writeHead(200, {
+    "Content-Type":
+      videoResponse.headers.get("content-type") ||
+      "video/mp4",
+    ...(videoResponse.headers.get("content-length")
+      ? {
+          "Content-Length":
+            videoResponse.headers.get("content-length")!,
+        }
+      : {}),
+  });
+
+  const reader = videoResponse.body.getReader();
+
+  try {
+    while (true) {
+      const chunk = await reader.read();
+
+      if (chunk.done) {
+        break;
+      }
+
+      response.write(Buffer.from(chunk.value));
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  response.end();
+}
+
 function sendJson(
   response: import("node:http").ServerResponse,
   status: number,
@@ -90,6 +135,49 @@ function sendJson(
 createServer(async (request, response) => {
   if (request.method === "GET" && request.url === "/") {
     sendJson(response, 200, { status: "ok" });
+    return;
+  }
+
+  if (  request.method === "GET" &&
+  request.url?.startsWith("/stream?")
+  ) {
+  if (
+    resolverSecret &&
+    request.headers.authorization !== `Bearer ${resolverSecret}`
+  ) {
+    sendJson(response, 401, { error: "Unauthorized." });
+    return;
+  }
+
+  try {
+    const requestUrl = new URL(
+      request.url,
+      `http://${request.headers.host || "localhost"}`
+    );
+    const youtubeUrl = requestUrl.searchParams.get("url");
+
+    if (!youtubeUrl) {
+      throw new Error("A YouTube URL is required.");
+    }
+
+    await streamVideo(youtubeUrl, response);
+  } catch (error) {
+    console.error("YOUTUBE STREAM ERROR:", error);
+
+    if (!response.headersSent) {
+      sendJson(response, 422, {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unable to stream the YouTube video.",
+      });
+    } else {
+      response.destroy(
+        error instanceof Error ? error : undefined
+      );
+    }
+  }
+
     return;
   }
 
