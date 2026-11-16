@@ -38,12 +38,20 @@ export default function ProcessLinkForm() {
       // Step 1: Create the job
       const result = await createJob(url, platform);
 
-      if (!result.success || !result.job) {
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+
+      if (!result.job) {
         throw new Error("Failed to create job.");
       }
 
       // Step 2: Process the newly-created job
-      await processJob(result.job.id);
+      const processResult = await processJob(result.job.id);
+
+      if (!processResult.success) {
+        throw new Error(processResult.error);
+      }
 
       // Clear input after successful processing
       setUrl("");

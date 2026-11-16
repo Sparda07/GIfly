@@ -113,11 +113,13 @@ export async function createJob(
       error
     );
 
-    throw new Error(
-      error instanceof Error
-        ? error.message
-        : "Failed to create job."
-    );
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to create job.",
+    };
   }
 }
 
@@ -430,10 +432,12 @@ export async function processJob(
       );
     }
 
-    throw new Error(
-      error instanceof Error
-        ? error.message
-        : "Failed to process job."
-    );
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to process job.",
+    };
   }
 }

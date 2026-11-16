@@ -79,6 +79,14 @@ export default function HomePage() {
       // Create database job
       const result = await createJob(url, detected);
 
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+
+      if (!result.job) {
+        throw new Error("Failed to create job.");
+      }
+
       console.log("Job created successfully:", result.job);
     } catch (error) {
       console.error("Failed to create job:", error);
